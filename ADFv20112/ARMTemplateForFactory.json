@@ -1,0 +1,241 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory Name",
+			"defaultValue": "ADFv20112"
+		},
+		"AzureBlobStorage1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage1'"
+		},
+		"ProcessesOrdersSQLconnection_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'ProcessesOrdersSQLconnection'"
+		},
+		"OrdersBlobDataset_properties_typeProperties_fileName": {
+			"type": "string",
+			"defaultValue": "sample-orders.csv"
+		},
+		"OrdersBlobDataset_properties_typeProperties_folderPath": {
+			"type": "string",
+			"defaultValue": "rajeshcontainer"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorage1_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProcessesOrdersSQLconnection')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('ProcessesOrdersSQLconnection_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/OrdersBlobDataset')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureBlob",
+				"structure": [
+					{
+						"name": "orderId",
+						"type": "String"
+					},
+					{
+						"name": "orderDate",
+						"type": "DateTime"
+					},
+					{
+						"name": "customer",
+						"type": "String"
+					},
+					{
+						"name": "billingAddress",
+						"type": "String"
+					},
+					{
+						"name": "shippingAddress",
+						"type": "String"
+					},
+					{
+						"name": "units",
+						"type": "Int32"
+					},
+					{
+						"name": "amount",
+						"type": "Int32"
+					},
+					{
+						"name": "remarks",
+						"type": "String"
+					}
+				],
+				"typeProperties": {
+					"format": {
+						"type": "TextFormat",
+						"columnDelimiter": ",",
+						"rowDelimiter": "",
+						"quoteChar": "\"",
+						"nullValue": "\\N",
+						"encodingName": null,
+						"treatEmptyAsNull": true,
+						"skipLineCount": 0,
+						"firstRowAsHeader": true
+					},
+					"fileName": "[parameters('OrdersBlobDataset_properties_typeProperties_fileName')]",
+					"folderPath": "[parameters('OrdersBlobDataset_properties_typeProperties_folderPath')]"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ProcessedOrderRecords')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ProcessesOrdersSQLconnection",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"structure": [
+					{
+						"name": "orderId",
+						"type": "Int32"
+					},
+					{
+						"name": "orderDate",
+						"type": "Date"
+					},
+					{
+						"name": "customer",
+						"type": "String"
+					},
+					{
+						"name": "billingAddress",
+						"type": "String"
+					},
+					{
+						"name": "shippingAddress",
+						"type": "String"
+					},
+					{
+						"name": "units",
+						"type": "Int32"
+					},
+					{
+						"name": "amount",
+						"type": "Int32"
+					},
+					{
+						"name": "remarks",
+						"type": "String"
+					}
+				],
+				"typeProperties": {
+					"tableName": "[concat('[', 'dbo].[ProcessedOrders]')]"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ProcessesOrdersSQLconnection')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ProcessBlobtoSQLdatabase",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BlobSource",
+								"recursive": true
+							},
+							"sink": {
+								"type": "SqlSink",
+								"writeBatchSize": 10000
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"columnMappings": {
+									"orderId": "orderId",
+									"orderDate": "orderDate",
+									"customer": "customer",
+									"billingAddress": "billingAddress",
+									"shippingAddress": "shippingAddress",
+									"units": "units",
+									"amount": "amount",
+									"remarks": "remarks"
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "OrdersBlobDataset",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ProcessedOrderRecords",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/OrdersBlobDataset')]",
+				"[concat(variables('factoryId'), '/datasets/ProcessedOrderRecords')]"
+			]
+		}
+	]
+}
