@@ -1,0 +1,11 @@
+{
+	"name": "ProcessesOrdersSQLconnection",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": "integrated security=False;encrypt=True;connection timeout=30;data source=azuresqlserverrajesh.database.windows.net;initial catalog=azuresqldatabaserajesh;user id=ousername",
+			"encryptedCredential": "ew0KICAiVmVyc2lvbiI6ICIyMDE3LTExLTMwIiwNCiAgIlByb3RlY3Rpb25Nb2RlIjogIktleSIsDQogICJTZWNyZXRDb250ZW50VHlwZSI6ICJQbGFpbnRleHQiLA0KICAiQ3JlZGVudGlhbElkIjogIkFERlYyMDExMl9iMmI2MmRkNy1kNDA0LTRjODktODU3Yy0wNzFiYzQ4ODU2NWUiDQp9"
+		}
+	}
+}
